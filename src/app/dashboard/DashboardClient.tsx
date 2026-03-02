@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { User } from "@supabase/supabase-js";
-import { signOut } from "@/app/actions/auth";
+import { useRouter } from "next/navigation";
+import { signOut, updateProfile, updatePassword } from "@/app/actions/auth";
 import {
   Zap,
   LayoutDashboard,
@@ -27,6 +28,8 @@ import {
   LogOut,
   Menu,
   X,
+  Pencil,
+  KeyRound,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -153,9 +156,28 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ user }: DashboardClientProps) {
+  const router = useRouter();
   const [activeNav, setActiveNav] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [agentRunning, setAgentRunning] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        profileDropdownRef.current &&
+        !profileDropdownRef.current.contains(e.target as Node)
+      ) {
+        setProfileDropdownOpen(false);
+      }
+    }
+    if (profileDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [profileDropdownOpen]);
 
   const displayName =
     user.user_metadata?.full_name ||
@@ -187,9 +209,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-30 flex flex-col w-64 transition-transform duration-300 lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed lg:static inset-y-0 left-0 z-30 flex flex-col w-64 transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
         style={{
           background: "#070d17",
           borderRight: "1px solid rgba(0,245,255,0.08)",
@@ -235,15 +256,15 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 style={
                   isActive
                     ? {
-                        background: "rgba(0,245,255,0.1)",
-                        border: "1px solid rgba(0,245,255,0.2)",
-                        color: "#00f5ff",
-                        boxShadow: "0 0 12px rgba(0,245,255,0.15)",
-                      }
+                      background: "rgba(0,245,255,0.1)",
+                      border: "1px solid rgba(0,245,255,0.2)",
+                      color: "#00f5ff",
+                      boxShadow: "0 0 12px rgba(0,245,255,0.15)",
+                    }
                     : {
-                        color: "#64748b",
-                        border: "1px solid transparent",
-                      }
+                      color: "#64748b",
+                      border: "1px solid transparent",
+                    }
                 }
               >
                 <Icon size={16} />
@@ -378,14 +399,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               style={
                 agentRunning
                   ? {
-                      background: "rgba(0,255,136,0.1)",
-                      border: "1px solid rgba(0,255,136,0.3)",
-                      color: "#00ff88",
-                    }
+                    background: "rgba(0,255,136,0.1)",
+                    border: "1px solid rgba(0,255,136,0.3)",
+                    color: "#00ff88",
+                  }
                   : {
-                      background: "linear-gradient(135deg, #00f5ff, #bf00ff)",
-                      color: "#000",
-                    }
+                    background: "linear-gradient(135deg, #00f5ff, #bf00ff)",
+                    color: "#000",
+                  }
               }
             >
               {agentRunning ? (
@@ -420,26 +441,70 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               />
             </button>
 
-            {/* User avatar */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl cursor-pointer transition-all"
-              style={{
-                background: "rgba(0,245,255,0.06)",
-                border: "1px solid rgba(0,245,255,0.15)",
-              }}
-            >
-              <div
-                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+            {/* User avatar + dropdown */}
+            <div className="relative" ref={profileDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setProfileDropdownOpen((o) => !o)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl cursor-pointer transition-all hover:opacity-90"
                 style={{
-                  background: "linear-gradient(135deg, #00f5ff, #bf00ff)",
-                  color: "#000",
+                  background: "rgba(0,245,255,0.06)",
+                  border: "1px solid rgba(0,245,255,0.15)",
                 }}
               >
-                {initials}
-              </div>
-              <ChevronDown size={12} className="text-slate-500" />
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                  style={{
+                    background: "linear-gradient(135deg, #00f5ff, #bf00ff)",
+                    color: "#000",
+                  }}
+                >
+                  {initials}
+                </div>
+                <ChevronDown
+                  size={12}
+                  className={`text-slate-500 transition-transform ${profileDropdownOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {profileDropdownOpen && (
+                <div
+                  className="absolute right-0 top-full mt-2 py-1 min-w-[160px] rounded-xl shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+                  style={{
+                    background: "#0f172a",
+                    border: "1px solid rgba(0,245,255,0.2)",
+                    boxShadow: "0 10px 40px rgba(0,0,0,0.5)",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      setEditProfileOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    <Pencil size={14} />
+                    Edit profile
+                  </button>
+
+                </div>
+              )}
             </div>
           </div>
         </header>
+
+        {/* Edit profile modal */}
+        {editProfileOpen && (
+          <EditProfileModal
+            user={user}
+            displayName={displayName}
+            onClose={() => setEditProfileOpen(false)}
+            onSuccess={() => {
+              setEditProfileOpen(false);
+              router.refresh();
+            }}
+          />
+        )}
 
         {/* Page body */}
         <main className="flex-1 overflow-y-auto p-6 grid-bg">
@@ -453,6 +518,196 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             <ComingSoon label={NAV_ITEMS.find((n) => n.id === activeNav)?.label ?? ""} />
           )}
         </main>
+      </div>
+    </div>
+  );
+}
+
+function EditProfileModal({
+  user,
+  displayName,
+  onClose,
+  onSuccess,
+}: {
+  user: User;
+  displayName: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setPending(true);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const fullName = (formData.get("fullName") as string)?.trim();
+    const newPassword = formData.get("newPassword") as string;
+    const confirmPassword = formData.get("confirmPassword") as string;
+
+    if (!fullName) {
+      setError("Name is required");
+      setPending(false);
+      return;
+    }
+
+    const profileForm = new FormData();
+    profileForm.set("fullName", fullName);
+    const profileResult = await updateProfile(profileForm);
+    if (profileResult?.error) {
+      setError(profileResult.error);
+      setPending(false);
+      return;
+    }
+
+    if (newPassword || confirmPassword) {
+      if (newPassword.length < 6) {
+        setError("Password must be at least 6 characters");
+        setPending(false);
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setError("Passwords do not match");
+        setPending(false);
+        return;
+      }
+      const pwdForm = new FormData();
+      pwdForm.set("newPassword", newPassword);
+      pwdForm.set("confirmPassword", confirmPassword);
+      const pwdResult = await updatePassword(pwdForm);
+      if (pwdResult?.error) {
+        setError(pwdResult.error);
+        setPending(false);
+        return;
+      }
+    }
+
+    setSuccess(true);
+    setPending(false);
+    setTimeout(() => onSuccess(), 800);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl p-6 shadow-2xl"
+        style={{
+          background: "#070d17",
+          border: "1px solid rgba(0,245,255,0.2)",
+          boxShadow: "0 0 40px rgba(0,245,255,0.1)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-bold text-white">Edit profile</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-slate-500 hover:text-white transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {error && (
+            <p
+              className="text-sm rounded-lg px-3 py-2"
+              style={{
+                background: "rgba(255,0,128,0.1)",
+                border: "1px solid rgba(255,0,128,0.3)",
+                color: "#ff6b9d",
+              }}
+            >
+              {error}
+            </p>
+          )}
+          {success && (
+            <p
+              className="text-sm rounded-lg px-3 py-2"
+              style={{
+                background: "rgba(0,255,136,0.1)",
+                border: "1px solid rgba(0,255,136,0.3)",
+                color: "#00ff88",
+              }}
+            >
+              Profile updated successfully.
+            </p>
+          )}
+          <div>
+            <label
+              htmlFor="edit-fullName"
+              className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5"
+            >
+              Display name
+            </label>
+            <input
+              id="edit-fullName"
+              name="fullName"
+              type="text"
+              defaultValue={displayName}
+              className="w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-white/5 border border-white/10 focus:border-[#00f5ff] focus:outline-none focus:ring-1 focus:ring-[#00f5ff]/50 transition-colors"
+              placeholder="Your name"
+            />
+          </div>
+          <div className="text-xs text-slate-500">{user.email}</div>
+          <div
+            className="pt-4 border-t"
+            style={{ borderColor: "rgba(0,245,255,0.1)" }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <KeyRound size={14} style={{ color: "#00f5ff" }} />
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Change password
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">
+              Leave blank to keep your current password.
+            </p>
+            <div className="space-y-3">
+              <input
+                name="newPassword"
+                type="password"
+                autoComplete="new-password"
+                className="w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-white/5 border border-white/10 focus:border-[#00f5ff] focus:outline-none focus:ring-1 focus:ring-[#00f5ff]/50 transition-colors"
+                placeholder="New password"
+              />
+              <input
+                name="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                className="w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-white/5 border border-white/10 focus:border-[#00f5ff] focus:outline-none focus:ring-1 focus:ring-[#00f5ff]/50 transition-colors"
+                placeholder="Confirm new password"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-400 hover:text-white border border-white/10 hover:border-white/20 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={pending}
+              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+              style={{
+                background: "linear-gradient(135deg, #00f5ff, #bf00ff)",
+                color: "#000",
+              }}
+            >
+              {pending ? "Saving…" : "Save changes"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

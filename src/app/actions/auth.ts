@@ -48,3 +48,27 @@ export async function signOut() {
   await supabase.auth.signOut();
   redirect("/auth/login");
 }
+
+export async function updateProfile(formData: FormData) {
+  const supabase = await createClient();
+  const fullName = formData.get("fullName") as string | null;
+  if (!fullName?.trim()) return { error: "Name is required" };
+  const { error } = await supabase.auth.updateUser({
+    data: { full_name: fullName.trim() },
+  });
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+export async function updatePassword(formData: FormData) {
+  const supabase = await createClient();
+  const newPassword = formData.get("newPassword") as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
+  if (!newPassword || newPassword.length < 6)
+    return { error: "Password must be at least 6 characters" };
+  if (newPassword !== confirmPassword)
+    return { error: "Passwords do not match" };
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { error: error.message };
+  return { success: true };
+}
