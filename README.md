@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Drizzle Marketing PM Agent
 
-## Getting Started
+An autonomous AI agent that integrates Fireflies, Google Drive, Jira, and Slack to fully automate Drizzle's marketing and operations workflow.
 
-First, run the development server:
+## Tech Stack
+
+- **Next.js 16** (App Router, TypeScript, Tailwind CSS)
+- **Supabase** — Auth + PostgreSQL database
+- **Lucide React** — Icon library
+
+## Setup
+
+### 1. Create a Supabase project
+
+Go to [supabase.com](https://supabase.com), create a project, and grab:
+- Project URL (`NEXT_PUBLIC_SUPABASE_URL`)
+- Anon/public key (`NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+
+### 2. Configure environment variables
+
+Copy `.env.example` to `.env.local` and fill in values:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# Integrations (for later)
+FIREFLIES_API_KEY=...
+GOOGLE_DRIVE_CLIENT_ID=...
+JIRA_DOMAIN=...
+SLACK_BOT_TOKEN=...
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Install and run
 
-## Learn More
+```bash
+npm install
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000) — you'll be redirected to `/auth/login`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 4. Supabase Auth setup
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+In your Supabase dashboard:
+- Enable **Email** provider in Authentication → Providers
+- Set Site URL to `http://localhost:3000` (dev) or your production URL
+- Add `http://localhost:3000/auth/callback` to Redirect URLs
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## App Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+├── app/
+│   ├── actions/auth.ts         # Server actions: signIn, signUp, signOut
+│   ├── auth/
+│   │   ├── login/page.tsx      # Login page
+│   │   ├── signup/page.tsx     # Sign up page
+│   │   └── callback/route.ts   # OAuth callback handler
+│   ├── dashboard/
+│   │   ├── page.tsx            # Server component (auth check)
+│   │   └── DashboardClient.tsx # Main dashboard UI
+│   ├── layout.tsx
+│   ├── page.tsx                # Root redirect
+│   └── globals.css             # Neon / crypto design tokens
+├── lib/supabase/
+│   ├── client.ts               # Browser Supabase client
+│   └── server.ts               # Server Supabase client
+└── proxy.ts                    # Route protection (Next.js 16 proxy)
+```
+
+## Features (Auth Flow)
+
+- `/` → redirects to `/dashboard` if logged in, else `/auth/login`
+- `/auth/login` — Email/password sign-in with neon crypto UI
+- `/auth/signup` — Account creation with email verification flow
+- `/dashboard` — Protected, shows overview with stats, activity feed, integrations panel
+- Sign out button in sidebar
+
+## Next Steps
+
+- [ ] Fireflies webhook integration
+- [ ] Google Drive document sync
+- [ ] Jira task automation
+- [ ] Slack approval workflow
+- [ ] AI agent orchestration engine
